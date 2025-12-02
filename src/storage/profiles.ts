@@ -3,7 +3,7 @@ import type { Profile } from '../types'
 
 // Fallback for browsers without crypto.randomUUID (Safari < 15.4, older Chrome/Firefox)
 function generateId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID()
   }
   // Fallback: generate UUID v4 manually
