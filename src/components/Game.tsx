@@ -19,6 +19,7 @@ import { updateProfile } from '../storage/profiles'
 import { updateStats, calculateQuality, createInitialStats } from '../learning/sm2'
 import { getPhaseBasedSpeed, updateSpeedMultiplier, addPerformanceResult } from '../game/performance'
 import { recordCorrectAnswer, getPhaseDescription } from '../game/phases'
+import { trackGameStart, trackGameEnd, trackNewHighScore } from '../utils/analytics'
 
 interface Props {
   profile: Profile
@@ -50,6 +51,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
   const hudUpdateRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const canvasRef = useRef<GameCanvasHandle>(null)
   const mountedRef = useRef(true)
+  const gameStartTimeRef = useRef<number>(Date.now())
 
   // Load stats on mount
   useEffect(() => {
@@ -153,7 +155,19 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     const isNewHighScore = state.score > profile.highScore
     if (isNewHighScore) {
       await updateProfile({ ...profile, highScore: state.score })
+      trackNewHighScore(state.score, profile.highScore)
     }
+
+    // Track game end
+    const duration = Date.now() - gameStartTimeRef.current
+    trackGameEnd({
+      score: state.score,
+      level: state.level,
+      problemsAttempted,
+      problemsCorrect,
+      duration,
+      isNewHighScore,
+    })
 
     onGameOver({
       score: state.score,
@@ -167,6 +181,10 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
 
   // Game loop
   useEffect(() => {
+    // Track game start
+    gameStartTimeRef.current = Date.now()
+    trackGameStart(selectedTables, profile.name)
+
     // Spawn initial problems immediately so screen isn't empty
     spawnProblem()
     // Add a second problem after a short delay for variety

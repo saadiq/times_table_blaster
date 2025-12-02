@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { Profile } from '../types'
 import { getAllProfiles, createProfile, deleteProfile } from '../storage/profiles'
+import { trackProfileCreated } from '../utils/analytics'
 
 interface Props {
   onSelectProfile: (profile: Profile) => void
@@ -41,6 +42,7 @@ export function ProfilePicker({ onSelectProfile }: Props) {
     setIsSubmitting(true)
     try {
       const profile = await createProfile(newName.trim())
+      trackProfileCreated(profile.name)
       setNewName('')
       setIsCreating(false)
       onSelectProfile(profile)
