@@ -17,13 +17,44 @@ function getMasteryLevel(stats: ProblemStats | undefined): MasteryLevel {
   return 'needsWork'
 }
 
-function getMasteryEmoji(level: MasteryLevel): string {
-  switch (level) {
-    case 'mastered': return '🟢'
-    case 'learning': return '🟡'
-    case 'needsWork': return '🔴'
-    case 'unseen': return '⚪'
+// Star SVG component for mastery display
+function MasteryStar({ level }: { level: MasteryLevel }) {
+  const getStarClass = () => {
+    switch (level) {
+      case 'mastered': return 'star-mastered'
+      case 'learning': return 'star-learning'
+      case 'needsWork': return 'star-needs-work'
+      case 'unseen': return 'star-not-practiced'
+    }
   }
+
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill={level === 'unseen' ? 'transparent' : 'currentColor'}
+      stroke="currentColor"
+      strokeWidth={level === 'unseen' ? '1.5' : '0'}
+      className={`${getStarClass()} transition-transform hover:scale-150 cursor-pointer`}
+    >
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  )
+}
+
+// Stat card with icon
+function StatCard({ icon, value, label, delay }: { icon: string; value: string | number; label: string; delay: number }) {
+  return (
+    <div
+      className="glass-card p-5 text-center hover:-translate-y-1 transition-transform"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <div className="text-3xl mb-2">{icon}</div>
+      <div className="text-stat text-white">{value}</div>
+      <div className="text-sm text-surface-light">{label}</div>
+    </div>
+  )
 }
 
 export function StatsView({ profile, onBack }: Props) {
@@ -63,65 +94,69 @@ export function StatsView({ profile, onBack }: Props) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
-        <div className="text-xl">Loading stats...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-white animate-pulse">Loading stats...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
+    <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">📊 Your Progress</h1>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-heading text-white animate-slide-down">
+            📊 Your Progress
+          </h1>
           <button
             onClick={onBack}
-            className="text-gray-400 hover:text-white"
+            className="text-surface-light hover:text-white transition-colors"
           >
             ← Back to Menu
           </button>
         </div>
 
+        {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-800 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold">{totalPracticed}</div>
-            <div className="text-sm text-gray-400">Problems Practiced</div>
-          </div>
-          <div className="bg-gray-800 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold">{overallAccuracy}%</div>
-            <div className="text-sm text-gray-400">Overall Accuracy</div>
-          </div>
-          <div className="bg-gray-800 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold">{profile.highScore.toLocaleString()}</div>
-            <div className="text-sm text-gray-400">High Score</div>
-          </div>
+          <StatCard icon="🎯" value={totalPracticed} label="Problems Practiced" delay={0} />
+          <StatCard icon="✨" value={`${overallAccuracy}%`} label="Overall Accuracy" delay={75} />
+          <StatCard icon="🏆" value={profile.highScore.toLocaleString()} label="High Score" delay={150} />
         </div>
 
-        <div className="bg-gray-800 rounded-lg p-6 mb-8">
-          <h2 className="text-lg font-semibold mb-4">Mastery Grid</h2>
+        {/* Mastery Grid */}
+        <div className="glass-card p-6 mb-8">
+          <h2 className="text-subheading text-secondary-300 mb-4">
+            Multiplication Mastery
+          </h2>
           <div className="overflow-x-auto">
             <table className="w-full text-center">
               <thead>
                 <tr>
-                  <th className="p-2">×</th>
+                  <th className="p-2 text-surface-light font-display">×</th>
                   {multipliers.map(m => (
-                    <th key={m} className="p-2 text-gray-400">{m}</th>
+                    <th key={m} className="p-2 text-surface-light text-sm">{m}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {tables.map(table => (
                   <tr key={table}>
-                    <td className="p-2 font-semibold text-gray-400">{table}</td>
+                    <td className="p-2 font-display font-bold text-surface-light">{table}</td>
                     {multipliers.map(m => {
                       const key = getProblemKey(table, m)
                       const stats = statsMap.get(key)
                       const level = getMasteryLevel(stats)
+                      const accuracy = stats && stats.totalAttempts > 0
+                        ? Math.round((stats.totalCorrect / stats.totalAttempts) * 100)
+                        : null
                       return (
                         <td key={m} className="p-1">
-                          <span title={`${key} - ${level}`}>
-                            {getMasteryEmoji(level)}
-                          </span>
+                          <div
+                            title={`${key}${accuracy !== null ? ` - ${accuracy}%` : ' - Not practiced'}`}
+                            className="flex justify-center"
+                          >
+                            <MasteryStar level={level} />
+                          </div>
                         </td>
                       )
                     })}
@@ -130,20 +165,35 @@ export function StatsView({ profile, onBack }: Props) {
               </tbody>
             </table>
           </div>
-          <div className="flex gap-4 mt-4 text-sm justify-center">
-            <span>🟢 Mastered</span>
-            <span>🟡 Learning</span>
-            <span>🔴 Needs Work</span>
-            <span>⚪ Not Practiced</span>
+
+          {/* Legend */}
+          <div className="flex gap-6 mt-6 text-sm justify-center flex-wrap">
+            <div className="flex items-center gap-2">
+              <MasteryStar level="mastered" />
+              <span className="text-surface-light">Mastered</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MasteryStar level="learning" />
+              <span className="text-surface-light">Learning</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MasteryStar level="needsWork" />
+              <span className="text-surface-light">Needs Work</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MasteryStar level="unseen" />
+              <span className="text-surface-light">Not Practiced</span>
+            </div>
           </div>
         </div>
 
+        {/* Focus Areas */}
         {troubleSpots.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 text-yellow-400">
+          <div className="glass-card p-6">
+            <h2 className="text-subheading text-warning-400 mb-4">
               🎯 Focus Areas
             </h2>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {troubleSpots.map(stats => {
                 const accuracy = Math.round(
                   (stats.totalCorrect / stats.totalAttempts) * 100
@@ -151,12 +201,25 @@ export function StatsView({ profile, onBack }: Props) {
                 return (
                   <div
                     key={stats.problemKey}
-                    className="flex justify-between items-center bg-gray-700 rounded p-3"
+                    className="bg-bg-medium rounded-xl p-4 border-l-4 border-warning-500"
                   >
-                    <span className="font-mono text-lg">{stats.problemKey}</span>
-                    <span className="text-gray-400">
-                      {accuracy}% ({stats.totalAttempts} attempts)
-                    </span>
+                    <div className="font-display text-xl text-white mb-2">
+                      {stats.problemKey}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-bg-dark rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-error-500 to-warning-500 rounded-full"
+                          style={{ width: `${accuracy}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-surface-light w-12 text-right">
+                        {accuracy}%
+                      </span>
+                    </div>
+                    <div className="text-xs text-surface-light mt-1">
+                      {stats.totalAttempts} attempts
+                    </div>
                   </div>
                 )
               })}
