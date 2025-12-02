@@ -5,6 +5,7 @@ import { Menu } from './components/Menu'
 import { Game } from './components/Game'
 import { GameOver } from './components/GameOver'
 import { StatsView } from './components/StatsView'
+import { Footer } from './components/Footer'
 
 const DEFAULT_TABLES = [2, 3, 4, 5]
 
@@ -55,55 +56,42 @@ function App() {
     setScreen('game')
   }
 
-  if (screen === 'profile' || !profile) {
-    return <ProfilePicker onSelectProfile={handleSelectProfile} />
-  }
-
-  if (screen === 'menu') {
-    return (
-      <Menu
-        profile={profile}
-        selectedTables={selectedTables}
-        onToggleTable={handleToggleTable}
-        onStartGame={handleStartGame}
-        onViewStats={() => setScreen('stats')}
-        onChangeProfile={() => setScreen('profile')}
-      />
-    )
-  }
-
-  if (screen === 'game') {
-    return (
-      <Game
-        key={Date.now()} // Force remount on each game
-        profile={profile}
-        selectedTables={selectedTables}
-        onGameOver={handleGameOver}
-        onBackToMenu={() => setScreen('menu')}
-      />
-    )
-  }
-
-  if (screen === 'gameOver' && gameResult) {
-    return (
-      <GameOver
-        {...gameResult}
-        onPlayAgain={handlePlayAgain}
-        onBackToMenu={() => setScreen('menu')}
-      />
-    )
-  }
-
-  if (screen === 'stats') {
-    return (
-      <StatsView
-        profile={profile}
-        onBack={() => setScreen('menu')}
-      />
-    )
-  }
-
-  return null
+  return (
+    <>
+      {screen === 'profile' || !profile ? (
+        <ProfilePicker onSelectProfile={handleSelectProfile} />
+      ) : screen === 'menu' ? (
+        <Menu
+          profile={profile}
+          selectedTables={selectedTables}
+          onToggleTable={handleToggleTable}
+          onStartGame={handleStartGame}
+          onViewStats={() => setScreen('stats')}
+          onChangeProfile={() => setScreen('profile')}
+        />
+      ) : screen === 'game' ? (
+        <Game
+          key={Date.now()} // Force remount on each game
+          profile={profile}
+          selectedTables={selectedTables}
+          onGameOver={handleGameOver}
+          onBackToMenu={() => setScreen('menu')}
+        />
+      ) : screen === 'gameOver' && gameResult ? (
+        <GameOver
+          {...gameResult}
+          onPlayAgain={handlePlayAgain}
+          onBackToMenu={() => setScreen('menu')}
+        />
+      ) : screen === 'stats' ? (
+        <StatsView
+          profile={profile}
+          onBack={() => setScreen('menu')}
+        />
+      ) : null}
+      <Footer />
+    </>
+  )
 }
 
 export default App
