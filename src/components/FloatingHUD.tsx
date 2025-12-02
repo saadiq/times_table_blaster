@@ -35,20 +35,30 @@ export function FloatingHUD({ lives, level, score, phaseProgress }: Props) {
   const phaseDesc = getPhaseDescription(phaseProgress.currentPhase)
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+
     if (score > prevScoreRef.current) {
       setIsScoreAnimating(true)
-      const timer = setTimeout(() => setIsScoreAnimating(false), 600)
-      prevScoreRef.current = score
-      return () => clearTimeout(timer)
+      timer = setTimeout(() => setIsScoreAnimating(false), 600)
+    }
+    prevScoreRef.current = score
+
+    return () => {
+      if (timer) clearTimeout(timer)
     }
   }, [score])
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+
     if (lives < prevLivesRef.current) {
       setIsLivesShaking(true)
-      const timer = setTimeout(() => setIsLivesShaking(false), 400)
-      prevLivesRef.current = lives
-      return () => clearTimeout(timer)
+      timer = setTimeout(() => setIsLivesShaking(false), 400)
+    }
+    prevLivesRef.current = lives
+
+    return () => {
+      if (timer) clearTimeout(timer)
     }
   }, [lives])
 

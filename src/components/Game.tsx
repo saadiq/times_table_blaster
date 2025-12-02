@@ -49,6 +49,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
   const spawnIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hudUpdateRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const canvasRef = useRef<GameCanvasHandle>(null)
+  const mountedRef = useRef(true)
 
   // Load stats on mount
   useEffect(() => {
@@ -108,6 +109,8 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
 
   // Handle game end
   const handleGameEnd = useCallback(async () => {
+    if (!mountedRef.current) return
+
     if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
     if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
 
@@ -210,6 +213,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     }, 100)
 
     return () => {
+      mountedRef.current = false
       if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current)
       if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
       if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
@@ -227,7 +231,10 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
 
   // NumberPad handlers
   function handleDigit(digit: string) {
-    setInputValue(prev => prev + digit)
+    setInputValue(prev => {
+      if (prev.length >= 3) return prev // Max 3 digits (answers up to 144)
+      return prev + digit
+    })
   }
 
   function handleClear() {
@@ -236,14 +243,11 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
 
   const state = gameStateRef.current
 
-  // Debug info for mobile
-  const debugInfo = `w:${width} h:${height} mobile:${isMobile} vw:${typeof window !== 'undefined' ? window.innerWidth : 0} vh:${typeof window !== 'undefined' ? window.innerHeight : 0}`
-
   // Don't render until we have valid dimensions
   if (width === 0 || height === 0) {
     return (
       <div className="game-container fixed inset-0 flex items-center justify-center bg-bg-deep">
-        <div className="text-white text-xl">Loading... {debugInfo}</div>
+        <div className="text-white text-xl">Loading...</div>
       </div>
     )
   }
@@ -290,8 +294,16 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
         </div>
       )}
 
-      {/* Back button - only on desktop */}
-      {!isMobile && (
+      {/* Back/Pause button */}
+      {isMobile ? (
+        <button
+          onClick={onBackToMenu}
+          className="absolute bottom-[220px] right-3 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-surface-light active:bg-black/70 z-20"
+          aria-label="Exit game"
+        >
+          ✕
+        </button>
+      ) : (
         <button
           onClick={onBackToMenu}
           className="absolute top-4 left-4 text-surface-light hover:text-white text-sm transition-colors z-20"

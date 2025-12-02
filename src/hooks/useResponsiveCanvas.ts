@@ -24,8 +24,14 @@ export function useResponsiveCanvas(): CanvasDimensions {
   )
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+
     function handleResize() {
-      setDimensions(calculateDimensions())
+      // Debounce resize to avoid excessive recalculations
+      if (timeoutId) clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        setDimensions(calculateDimensions())
+      }, 100)
     }
 
     window.addEventListener('resize', handleResize)
@@ -33,6 +39,7 @@ export function useResponsiveCanvas(): CanvasDimensions {
     window.addEventListener('orientationchange', handleResize)
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId)
       window.removeEventListener('resize', handleResize)
       window.removeEventListener('orientationchange', handleResize)
     }
