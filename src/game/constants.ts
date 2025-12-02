@@ -1,6 +1,5 @@
-// Game dimensions
-export const GAME_WIDTH = 900
-export const GAME_HEIGHT = 700
+// Game dimensions are now dynamic - see useResponsiveCanvas hook
+// Base dimensions for coordinate scaling are exported from src/hooks/useResponsiveCanvas.ts
 
 // Gameplay
 export const INITIAL_LIVES = 3

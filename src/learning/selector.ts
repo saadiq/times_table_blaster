@@ -1,6 +1,8 @@
 import type { ProblemStats, Problem, DifficultyPhase } from '../types'
 import { daysOverdue } from './sm2'
 import { filterProblemsByPhase } from './difficulty'
+import { BASE_WIDTH } from '../hooks/useResponsiveCanvas'
+import { generateUUID } from '../utils/uuid'
 
 // Generate canonical problem key (smaller number first)
 export function getProblemKey(a: number, b: number): string {
@@ -145,11 +147,11 @@ export function selectProblem(
   const [displayA, displayB] = Math.random() < 0.5 ? [a, b] : [b, a]
 
   return {
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     a: displayA,
     b: displayB,
     answer: a * b,
-    x: 50 + Math.random() * 500,  // GAME_WIDTH - 100
+    x: 50 + Math.random() * (BASE_WIDTH - 100), // Random X within canvas bounds
     y: -40,
     spawnedAt: Date.now()
   }

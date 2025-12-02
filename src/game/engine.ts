@@ -1,7 +1,5 @@
 import type { GameState, Problem } from '../types'
 import {
-  GAME_WIDTH,
-  GAME_HEIGHT,
   INITIAL_LIVES,
   POINTS_PER_DESTROY,
   POINTS_PER_LEVEL,
@@ -13,9 +11,11 @@ import {
   WRONG_EFFECT_FRAMES,
   WRONG_EFFECT_EMOJIS
 } from './constants'
+import { BASE_WIDTH, BASE_HEIGHT } from '../hooks/useResponsiveCanvas'
 import { getProblemKey } from '../learning/selector'
 import { createInitialPhaseProgress } from './phases'
 import { createInitialPerformanceMetrics } from './performance'
+import { generateUUID } from '../utils/uuid'
 
 export function createInitialGameState(): GameState {
   return {
@@ -39,7 +39,10 @@ export function calculateLevel(score: number): number {
   return Math.floor(score / POINTS_PER_LEVEL) + 1
 }
 
-export function updateGameState(state: GameState): {
+export function updateGameState(
+  state: GameState,
+  scaleY: number = 1
+): {
   correctHits: Array<{ problemKey: string; responseTime: number }>
   incorrectMisses: Array<{ problemKey: string; timeAlive: number }>
 } {
@@ -48,15 +51,17 @@ export function updateGameState(state: GameState): {
 
   if (state.status !== 'playing') return { correctHits, incorrectMisses }
 
-  const fallSpeed = getFallSpeed(state.level)
+  // Scale fall speed proportionally so gameplay feels the same on all screen sizes
+  const baseFallSpeed = getFallSpeed(state.level)
+  const fallSpeed = baseFallSpeed * scaleY
 
   // Update problems
   for (let i = state.problems.length - 1; i >= 0; i--) {
     const problem = state.problems[i]
     problem.y += fallSpeed
 
-    // Check if problem reached bottom
-    if (problem.y > GAME_HEIGHT) {
+    // Check if problem reached bottom (in base coordinates)
+    if (problem.y > BASE_HEIGHT) {
       state.problems.splice(i, 1)
       state.lives -= 1
 
@@ -84,12 +89,12 @@ export function updateGameState(state: GameState): {
     missile.x += missile.vx
     missile.y += missile.vy
 
-    // Remove if off screen
+    // Remove if off screen (in base coordinates)
     if (
       missile.x < -20 ||
-      missile.x > GAME_WIDTH + 20 ||
+      missile.x > BASE_WIDTH + 20 ||
       missile.y < -20 ||
-      missile.y > GAME_HEIGHT + 20
+      missile.y > BASE_HEIGHT + 20
     ) {
       state.missiles.splice(i, 1)
       continue
@@ -118,7 +123,7 @@ export function updateGameState(state: GameState): {
 
         // Add explosion
         state.explosions.push({
-          id: crypto.randomUUID(),
+          id: generateUUID(),
           x: problem.x,
           y: problem.y,
           frame: 0
@@ -167,13 +172,13 @@ export function fireMissile(
   const target = state.problems.find(p => p.answer === answer)
 
   if (!target) {
-    // Wrong answer - spawn effects
+    // Wrong answer - spawn effects (in base coordinates)
     for (let i = 0; i < 5; i++) {
       state.wrongAnswerEffects.push({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         emoji: WRONG_EFFECT_EMOJIS[Math.floor(Math.random() * WRONG_EFFECT_EMOJIS.length)],
-        x: Math.random() * GAME_WIDTH,
-        y: GAME_HEIGHT - 100 + Math.random() * 50,
+        x: Math.random() * BASE_WIDTH,
+        y: BASE_HEIGHT - 100 + Math.random() * 50,
         frame: 0,
         rotation: 0
       })
@@ -183,7 +188,7 @@ export function fireMissile(
 
   // Calculate intercept point (predict where target will be when missile arrives)
   const fallSpeed = getFallSpeed(state.level)
-  const launchY = GAME_HEIGHT - 30
+  const launchY = BASE_HEIGHT - 30
 
   const dx = target.x - launchX
   const dy = target.y - launchY
@@ -212,7 +217,7 @@ export function fireMissile(
   const rotation = Math.atan2(interceptDy, interceptDx)
 
   state.missiles.push({
-    id: crypto.randomUUID(),
+    id: generateUUID(),
     x: launchX,
     y: launchY,
     vx,
