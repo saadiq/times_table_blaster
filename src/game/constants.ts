@@ -9,7 +9,7 @@ export const POINTS_PER_LEVEL = 100
 
 // Difficulty scaling
 export function getFallSpeed(level: number): number {
-  return 0.3 + level * 0.15
+  return 0.15 + level * 0.075
 }
 
 export function getSpawnInterval(level: number): number {
