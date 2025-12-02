@@ -66,9 +66,10 @@ export function FloatingHUD({ lives, level, score, phaseProgress }: Props) {
     <div className="floating-hud absolute inset-0 pointer-events-none z-10">
       {/* Lives - Top Left */}
       <div
-        className={`absolute top-2 left-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 ${
+        className={`absolute left-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 ${
           isLivesShaking ? 'animate-shake' : ''
         }`}
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
       >
         <div className="flex gap-0.5">
           {Array.from({ length: 3 }, (_, i) => (
@@ -78,7 +79,10 @@ export function FloatingHUD({ lives, level, score, phaseProgress }: Props) {
       </div>
 
       {/* Level & Phase - Top Center */}
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-1.5 text-center">
+      <div
+        className="absolute left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-lg px-4 py-1.5 text-center"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
+      >
         <div className="text-sm font-bold text-secondary-400">
           Level {level}
         </div>
@@ -89,9 +93,10 @@ export function FloatingHUD({ lives, level, score, phaseProgress }: Props) {
 
       {/* Score - Top Right */}
       <div
-        className={`absolute top-2 right-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 ${
+        className={`absolute right-2 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5 ${
           isScoreAnimating ? 'animate-score-pop' : ''
         }`}
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
       >
         <div
           className={`text-lg font-mono font-bold ${
