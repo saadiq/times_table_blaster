@@ -18,6 +18,7 @@ export function ProfilePicker({ onSelectProfile }: Props) {
   const [newName, setNewName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadProfiles()
@@ -30,10 +31,16 @@ export function ProfilePicker({ onSelectProfile }: Props) {
 
   async function handleCreate() {
     if (!newName.trim()) return
-    const profile = await createProfile(newName.trim())
-    setNewName('')
-    setIsCreating(false)
-    onSelectProfile(profile)
+    setError(null)
+    try {
+      const profile = await createProfile(newName.trim())
+      setNewName('')
+      setIsCreating(false)
+      onSelectProfile(profile)
+    } catch (err) {
+      console.error('Failed to create profile:', err)
+      setError('Could not create pilot. Try a different browser or disable private browsing.')
+    }
   }
 
   async function handleDelete(id: string) {
@@ -129,6 +136,11 @@ export function ProfilePicker({ onSelectProfile }: Props) {
                 className="game-input w-full px-3 py-2 text-center text-white"
                 autoFocus
               />
+              {error && (
+                <div className="text-error-400 text-xs text-center">
+                  {error}
+                </div>
+              )}
               <div className="flex gap-2 w-full">
                 <button
                   onClick={handleCreate}
@@ -141,6 +153,7 @@ export function ProfilePicker({ onSelectProfile }: Props) {
                   onClick={() => {
                     setIsCreating(false)
                     setNewName('')
+                    setError(null)
                   }}
                   className="btn-secondary px-3 py-2 text-sm text-white"
                 >
