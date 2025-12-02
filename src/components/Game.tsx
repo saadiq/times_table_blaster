@@ -2,14 +2,17 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import type { Profile, GameState, ProblemStats } from '../types'
 import { GameCanvas } from './GameCanvas'
 import type { GameCanvasHandle } from './GameCanvas'
-import { GameHUD } from './GameHUD'
+import { FloatingHUD } from './FloatingHUD'
+import { NumberPad } from './NumberPad'
+import { KeyboardInput } from './KeyboardInput'
 import {
   createInitialGameState,
   updateGameState,
   fireMissile,
   addProblem
 } from '../game/engine'
-import { getMaxMultiplier, GAME_WIDTH } from '../game/constants'
+import { getMaxMultiplier } from '../game/constants'
+import { useResponsiveCanvas, BASE_WIDTH } from '../hooks/useResponsiveCanvas'
 import { selectProblem, getProblemKey } from '../learning/selector'
 import { getProblemStats, saveProblemStatsBatch } from '../storage/stats'
 import { updateProfile } from '../storage/profiles'
@@ -34,6 +37,9 @@ interface Props {
 export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Props) {
   const [, setRenderTick] = useState(0)
   const [inputValue, setInputValue] = useState('')
+
+  // Get responsive canvas dimensions
+  const { width, height, scaleX, scaleY, isMobile } = useResponsiveCanvas()
 
   const gameStateRef = useRef<GameState>(createInitialGameState())
   const statsMapRef = useRef<Map<string, ProblemStats>>(new Map())
@@ -169,11 +175,11 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
       // Update speed multiplier smoothly every frame
       updateSpeedMultiplier(state.performanceMetrics)
 
-      // Update game state and get collision events
-      const events = updateGameState(state)
+      // Update game state with scaleY for proportional fall speed
+      const events = updateGameState(state, scaleY)
 
       // Process correct hits
-      for (const { problemKey, responseTime } of events.correctHits) {
+      for (const { responseTime } of events.correctHits) {
         recordCorrectAnswer(state.phaseProgress)
         addPerformanceResult(state.performanceMetrics, true, responseTime)
       }
@@ -208,67 +214,91 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
       if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
       if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
     }
-  }, [spawnProblem, scheduleSpawn, handleGameEnd])
+  }, [spawnProblem, scheduleSpawn, handleGameEnd, scaleY])
 
+  // Fire missile at center of canvas (in base coordinates)
   function handleFire() {
     const answer = parseInt(inputValue, 10)
     if (isNaN(answer)) return
 
-    fireMissile(gameStateRef.current, answer, GAME_WIDTH / 2)
+    fireMissile(gameStateRef.current, answer, BASE_WIDTH / 2)
     setInputValue('')
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleFire()
-    }
+  // NumberPad handlers
+  function handleDigit(digit: string) {
+    setInputValue(prev => prev + digit)
+  }
+
+  function handleClear() {
+    setInputValue('')
   }
 
   const state = gameStateRef.current
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="arcade-frame overflow-hidden">
-        <GameHUD
-          lives={state.lives}
-          level={state.level}
-          score={state.score}
-          phaseProgress={state.phaseProgress}
-        />
-        <GameCanvas ref={canvasRef} />
+  // Debug info for mobile
+  const debugInfo = `w:${width} h:${height} mobile:${isMobile} vw:${typeof window !== 'undefined' ? window.innerWidth : 0} vh:${typeof window !== 'undefined' ? window.innerHeight : 0}`
 
-        {/* Control Panel */}
-        <div className="p-5 bg-bg-deep border-t-2 border-primary-500/30">
-          <div className="flex gap-3">
-            <input
-              type="number"
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type answer..."
-              className="game-input flex-1 px-5 py-4 text-white text-2xl"
-              autoFocus
-            />
-            <button
-              onClick={handleFire}
-              className="btn-fire px-8 py-4 text-lg text-white"
-            >
-              FIRE! 🚀
-            </button>
-          </div>
-          <p className="text-surface-light text-sm mt-3 text-center">
-            Type the answer and press <span className="text-secondary-400 font-semibold">Enter</span> to fire!
-          </p>
+  // Don't render until we have valid dimensions
+  if (width === 0 || height === 0) {
+    return (
+      <div className="game-container fixed inset-0 flex items-center justify-center bg-bg-deep">
+        <div className="text-white text-xl">Loading... {debugInfo}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="game-container fixed inset-0 flex flex-col bg-bg-deep overflow-hidden">
+      {/* Canvas Container with Floating HUD */}
+      <div
+        className="relative flex-1 flex items-center justify-center min-h-0"
+        style={!isMobile ? { maxWidth: `${width}px`, margin: '0 auto' } : undefined}
+      >
+        <div className="relative">
+          <GameCanvas
+            ref={canvasRef}
+            width={width}
+            height={height}
+            scaleX={scaleX}
+            scaleY={scaleY}
+          />
+          <FloatingHUD
+            lives={state.lives}
+            level={state.level}
+            score={state.score}
+            phaseProgress={state.phaseProgress}
+          />
         </div>
       </div>
 
-      <button
-        onClick={onBackToMenu}
-        className="mt-6 text-surface-light hover:text-white text-sm transition-colors"
-      >
-        ← Back to Menu
-      </button>
+      {/* Input Controls - NumberPad on mobile, Keyboard on desktop */}
+      {isMobile ? (
+        <NumberPad
+          value={inputValue}
+          onDigit={handleDigit}
+          onFire={handleFire}
+          onClear={handleClear}
+        />
+      ) : (
+        <div className="max-w-[1200px] mx-auto w-full">
+          <KeyboardInput
+            value={inputValue}
+            onChange={setInputValue}
+            onFire={handleFire}
+          />
+        </div>
+      )}
+
+      {/* Back button - only on desktop */}
+      {!isMobile && (
+        <button
+          onClick={onBackToMenu}
+          className="absolute top-4 left-4 text-surface-light hover:text-white text-sm transition-colors z-20"
+        >
+          ← Back to Menu
+        </button>
+      )}
     </div>
   )
 }
