@@ -9,11 +9,13 @@ import {
   fireMissile,
   addProblem
 } from '../game/engine'
-import { getSpawnInterval, getMaxMultiplier, GAME_WIDTH } from '../game/constants'
+import { getMaxMultiplier, GAME_WIDTH } from '../game/constants'
 import { selectProblem, getProblemKey } from '../learning/selector'
 import { getProblemStats, saveProblemStatsBatch } from '../storage/stats'
 import { updateProfile } from '../storage/profiles'
 import { updateStats, calculateQuality, createInitialStats } from '../learning/sm2'
+import { getPhaseBasedSpeed, updateSpeedMultiplier, addPerformanceResult } from '../game/performance'
+import { recordCorrectAnswer } from '../game/phases'
 
 interface Props {
   profile: Profile
@@ -60,13 +62,17 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     const state = gameStateRef.current
     if (state.status !== 'playing') return
 
+    const { currentPhase, correctInPhase } = state.phaseProgress
+
     const problem = selectProblem(
       selectedTables,
       getMaxMultiplier(state.level),
       statsMapRef.current,
       profile.id,
       recentlyShownRef.current,
-      missedThisSessionRef.current
+      missedThisSessionRef.current,
+      currentPhase,
+      correctInPhase
     )
 
     // Track as recently shown
@@ -85,11 +91,13 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     const state = gameStateRef.current
     if (state.status !== 'playing') return
 
-    const interval = getSpawnInterval(state.level)
+    const { currentPhase } = state.phaseProgress
+    const { spawnInterval } = getPhaseBasedSpeed(currentPhase, state.performanceMetrics)
+
     spawnIntervalRef.current = setTimeout(() => {
       spawnProblem()
       scheduleSpawn()
-    }, interval)
+    }, spawnInterval)
   }, [spawnProblem])
 
   // Handle game end
@@ -157,17 +165,27 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     // Game loop
     function loop() {
       const state = gameStateRef.current
-      updateGameState(state)
+
+      // Update speed multiplier smoothly every frame
+      updateSpeedMultiplier(state.performanceMetrics)
+
+      // Update game state and get collision events
+      const events = updateGameState(state)
+
+      // Process correct hits
+      for (const { problemKey, responseTime } of events.correctHits) {
+        recordCorrectAnswer(state.phaseProgress)
+        addPerformanceResult(state.performanceMetrics, true, responseTime)
+      }
+
+      // Process incorrect misses
+      for (const { problemKey, timeAlive } of events.incorrectMisses) {
+        missedThisSessionRef.current.add(problemKey)
+        addPerformanceResult(state.performanceMetrics, false, timeAlive)
+      }
 
       // Render to canvas
       canvasRef.current?.render(state)
-
-      // Check for newly missed problems
-      for (const [key, result] of state.problemResults) {
-        if (result.incorrect > 0) {
-          missedThisSessionRef.current.add(key)
-        }
-      }
 
       // Check game over
       if (state.status === 'ended') {
@@ -212,7 +230,12 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="arcade-frame overflow-hidden">
-        <GameHUD lives={state.lives} level={state.level} score={state.score} />
+        <GameHUD
+          lives={state.lives}
+          level={state.level}
+          score={state.score}
+          phaseProgress={state.phaseProgress}
+        />
         <GameCanvas ref={canvasRef} />
 
         {/* Control Panel */}

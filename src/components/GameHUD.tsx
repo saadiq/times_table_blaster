@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
+import type { PhaseProgress } from '../types'
+import { getPhaseDescription, getProgressToNextPhase } from '../game/phases'
 
 interface Props {
   lives: number
   level: number
   score: number
+  phaseProgress: PhaseProgress
 }
 
 // SVG Heart component for lives display
@@ -23,11 +26,14 @@ function Heart({ filled }: { filled: boolean }) {
   )
 }
 
-export function GameHUD({ lives, level, score }: Props) {
+export function GameHUD({ lives, level, score, phaseProgress }: Props) {
   const [isScoreAnimating, setIsScoreAnimating] = useState(false)
   const [isLivesShaking, setIsLivesShaking] = useState(false)
   const prevScoreRef = useRef(score)
   const prevLivesRef = useRef(lives)
+
+  const progress = getProgressToNextPhase(phaseProgress)
+  const phaseDesc = getPhaseDescription(phaseProgress.currentPhase)
 
   useEffect(() => {
     if (score > prevScoreRef.current) {
@@ -48,30 +54,50 @@ export function GameHUD({ lives, level, score }: Props) {
   }, [lives])
 
   return (
-    <div
-      className={`flex justify-between items-center px-4 py-3 bg-bg-deep/90 backdrop-blur-sm border-b-2 border-primary-500/30 ${
-        isLivesShaking ? 'animate-shake' : ''
-      }`}
-    >
-      {/* Lives */}
-      <div className="flex gap-1">
-        {Array.from({ length: 3 }, (_, i) => (
-          <Heart key={i} filled={i < lives} />
-        ))}
-      </div>
-
-      {/* Level Badge */}
-      <div className="level-badge text-white font-bold">
-        LEVEL {level}
-      </div>
-
-      {/* Score */}
+    <div className="relative">
       <div
-        className={`text-stat text-white min-w-[100px] text-right ${
-          isScoreAnimating ? 'animate-score-pop text-warning-400' : ''
+        className={`flex justify-between items-center px-4 py-3 bg-bg-deep/90 backdrop-blur-sm border-b-2 border-primary-500/30 ${
+          isLivesShaking ? 'animate-shake' : ''
         }`}
       >
-        {score.toLocaleString()}
+        {/* Lives */}
+        <div className="flex gap-1">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Heart key={i} filled={i < lives} />
+          ))}
+        </div>
+
+        {/* Phase indicator */}
+        <div className="text-center">
+          <div className="text-xs text-surface-light uppercase tracking-wider">Phase</div>
+          <div className="text-2xl font-bold text-secondary-400">
+            {phaseProgress.currentPhase}
+          </div>
+          {progress && (
+            <div className="text-xs text-surface-light mt-1">
+              {progress.current}/{progress.needed}
+            </div>
+          )}
+        </div>
+
+        {/* Level Badge */}
+        <div className="level-badge text-white font-bold">
+          LEVEL {level}
+        </div>
+
+        {/* Score */}
+        <div
+          className={`text-stat text-white min-w-[100px] text-right ${
+            isScoreAnimating ? 'animate-score-pop text-warning-400' : ''
+          }`}
+        >
+          {score.toLocaleString()}
+        </div>
+      </div>
+
+      {/* Phase description bar */}
+      <div className="px-4 py-1 text-xs text-center text-surface-light bg-bg-darker/50 border-b border-primary-500/20">
+        {phaseDesc}
       </div>
     </div>
   )

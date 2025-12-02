@@ -14,6 +14,8 @@ import {
   WRONG_EFFECT_EMOJIS
 } from './constants'
 import { getProblemKey } from '../learning/selector'
+import { createInitialPhaseProgress } from './phases'
+import { createInitialPerformanceMetrics } from './performance'
 
 export function createInitialGameState(): GameState {
   return {
@@ -27,7 +29,9 @@ export function createInitialGameState(): GameState {
     wrongAnswerEffects: [],
     problemResults: new Map(),
     lastSpawnTime: Date.now(),
-    sessionStartTime: Date.now()
+    sessionStartTime: Date.now(),
+    phaseProgress: createInitialPhaseProgress(),
+    performanceMetrics: createInitialPerformanceMetrics()
   }
 }
 
@@ -35,8 +39,14 @@ export function calculateLevel(score: number): number {
   return Math.floor(score / POINTS_PER_LEVEL) + 1
 }
 
-export function updateGameState(state: GameState): void {
-  if (state.status !== 'playing') return
+export function updateGameState(state: GameState): {
+  correctHits: Array<{ problemKey: string; responseTime: number }>
+  incorrectMisses: Array<{ problemKey: string; timeAlive: number }>
+} {
+  const correctHits: Array<{ problemKey: string; responseTime: number }> = []
+  const incorrectMisses: Array<{ problemKey: string; timeAlive: number }> = []
+
+  if (state.status !== 'playing') return { correctHits, incorrectMisses }
 
   const fallSpeed = getFallSpeed(state.level)
 
@@ -55,6 +65,12 @@ export function updateGameState(state: GameState): void {
       const result = state.problemResults.get(key) ?? { correct: 0, incorrect: 0, times: [] }
       result.incorrect += 1
       state.problemResults.set(key, result)
+
+      // Track miss event
+      incorrectMisses.push({
+        problemKey: key,
+        timeAlive: Date.now() - problem.spawnedAt
+      })
 
       if (state.lives <= 0) {
         state.status = 'ended'
@@ -97,6 +113,9 @@ export function updateGameState(state: GameState): void {
         result.times.push(responseTime)
         state.problemResults.set(key, result)
 
+        // Track hit event
+        correctHits.push({ problemKey: key, responseTime })
+
         // Add explosion
         state.explosions.push({
           id: crypto.randomUUID(),
@@ -135,6 +154,8 @@ export function updateGameState(state: GameState): void {
       state.wrongAnswerEffects.splice(i, 1)
     }
   }
+
+  return { correctHits, incorrectMisses }
 }
 
 export function fireMissile(

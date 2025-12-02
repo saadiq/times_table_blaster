@@ -68,6 +68,34 @@ export interface WrongEffect {
   rotation: number
 }
 
+// Phase system types
+export type DifficultyPhase = 1 | 2 | 3 | 4
+
+export interface PhaseProgress {
+  currentPhase: DifficultyPhase
+  correctInPhase: number  // Resets on phase advance
+  totalCorrect: number    // Cumulative across all phases
+}
+
+export interface PerformanceMetrics {
+  recentResults: Array<{
+    correct: boolean
+    responseTime: number
+    timestamp: number
+  }>  // Max 10 items (rolling window)
+  currentSpeedMultiplier: number  // Smooth transition value
+  targetSpeedMultiplier: number   // Based on performance score
+}
+
+export interface ProblemDifficulty {
+  problemKey: string
+  tableScore: number
+  productScore: number
+  sm2Score: number
+  totalScore: number
+  isEasy: boolean  // score ≤ 0.4
+}
+
 // Game state
 export interface GameState {
   status: 'playing' | 'paused' | 'ended'
@@ -81,6 +109,8 @@ export interface GameState {
   problemResults: Map<string, { correct: number; incorrect: number; times: number[] }>
   lastSpawnTime: number
   sessionStartTime: number
+  phaseProgress: PhaseProgress
+  performanceMetrics: PerformanceMetrics
 }
 
 // App-level state

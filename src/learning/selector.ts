@@ -1,5 +1,6 @@
-import type { ProblemStats, Problem } from '../types'
+import type { ProblemStats, Problem, DifficultyPhase } from '../types'
 import { daysOverdue } from './sm2'
+import { filterProblemsByPhase } from './difficulty'
 
 // Generate canonical problem key (smaller number first)
 export function getProblemKey(a: number, b: number): string {
@@ -81,10 +82,20 @@ export function selectProblem(
   allStats: Map<string, ProblemStats>,
   profileId: string,
   recentlyShownThisSession: Set<string>,
-  missedThisSession: Set<string>
+  missedThisSession: Set<string>,
+  phase: DifficultyPhase,
+  correctInPhase: number
 ): Problem {
   // Get all possible problems for selected tables
-  const allProblemKeys = generateAllProblemsForTables(selectedTables, maxMultiplier)
+  let allProblemKeys = generateAllProblemsForTables(selectedTables, maxMultiplier)
+
+  // Filter by phase difficulty
+  allProblemKeys = filterProblemsByPhase(
+    allProblemKeys,
+    phase,
+    correctInPhase,
+    allStats
+  )
 
   // Calculate weights
   const weighted: { key: string; weight: number }[] = []
@@ -109,7 +120,9 @@ export function selectProblem(
       allStats,
       profileId,
       recentlyShownThisSession,
-      missedThisSession
+      missedThisSession,
+      phase,
+      correctInPhase
     )
   }
 
