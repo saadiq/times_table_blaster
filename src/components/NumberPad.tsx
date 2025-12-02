@@ -7,9 +7,9 @@ interface Props {
 
 export function NumberPad({ value, onDigit, onFire, onClear }: Props) {
   return (
-    <div className="number-pad bg-bg-deep border-t border-primary-500/30">
+    <div className="number-pad bg-bg-deep border-t border-primary-500/30 relative z-10">
       {/* Answer Display */}
-      <div className="answer-display text-center text-3xl font-mono font-bold py-3 bg-bg-darker/50 text-white min-h-[52px]">
+      <div className="answer-display text-center text-3xl font-mono font-bold py-3 bg-bg-dark text-white min-h-[52px]">
         {value || <span className="text-gray-600">—</span>}
       </div>
 
