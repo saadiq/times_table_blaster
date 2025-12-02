@@ -6,6 +6,13 @@ interface Props {
   onSelectProfile: (profile: Profile) => void
 }
 
+// Avatar options for pilots
+const AVATARS = ['🤖', '👽', '🚀', '⭐', '🌟', '🛸', '👨‍🚀', '👩‍🚀', '🌙', '🪐']
+
+function getAvatar(index: number): string {
+  return AVATARS[index % AVATARS.length]
+}
+
 export function ProfilePicker({ onSelectProfile }: Props) {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [newName, setNewName] = useState('')
@@ -36,90 +43,130 @@ export function ProfilePicker({ onSelectProfile }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-8">
-      <h1 className="text-4xl font-bold mb-2">🚀 Times Table Blaster 🚀</h1>
-      <p className="text-gray-400 mb-8">Select your profile to continue</p>
+    <div className="min-h-screen bg-profile-gradient flex flex-col items-center justify-center p-8">
+      {/* Header */}
+      <div className="text-center mb-10 animate-slide-down">
+        <h1 className="text-title text-white drop-shadow-lg mb-2">
+          <span className="inline-block animate-float">🚀</span> Times Table Blaster <span className="inline-block animate-float" style={{ animationDelay: '0.5s' }}>🚀</span>
+        </h1>
+        <p className="text-white/70 text-lg">Choose Your Pilot!</p>
+      </div>
 
-      <div className="w-full max-w-md space-y-4">
-        {profiles.map(profile => (
-          <div
-            key={profile.id}
-            className="bg-gray-800 rounded-lg p-4 flex items-center justify-between"
-          >
-            <button
-              onClick={() => onSelectProfile(profile)}
-              className="flex-1 text-left hover:text-green-400 transition-colors"
+      {/* Profile Cards Grid */}
+      <div className="w-full max-w-3xl">
+        <div className="flex flex-wrap justify-center gap-6">
+          {profiles.map((profile, index) => (
+            <div
+              key={profile.id}
+              className="relative group"
             >
-              <div className="font-semibold text-lg">{profile.name}</div>
-              <div className="text-sm text-gray-400">
-                High Score: {profile.highScore.toLocaleString()}
+              {/* Profile Card */}
+              <button
+                onClick={() => confirmDelete !== profile.id && onSelectProfile(profile)}
+                className="w-44 h-56 glass-card p-4 flex flex-col items-center justify-center gap-3
+                  border-4 border-transparent hover:border-secondary-400/50
+                  transition-all duration-300 hover:scale-105 hover:-rotate-1
+                  hover:shadow-[0_8px_32px_rgba(34,211,238,0.3)]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%)',
+                }}
+              >
+                {/* Avatar */}
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-secondary-400 to-primary-500 flex items-center justify-center text-4xl shadow-lg">
+                  {getAvatar(index)}
+                </div>
+
+                {/* Name */}
+                <div className="text-white font-bold text-lg truncate w-full text-center">
+                  {profile.name}
+                </div>
+
+                {/* High Score */}
+                <div className="flex items-center gap-1 text-warning-400">
+                  <span>🏆</span>
+                  <span className="font-semibold">{profile.highScore.toLocaleString()}</span>
+                </div>
+              </button>
+
+              {/* Delete Button */}
+              {confirmDelete === profile.id ? (
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-2 bg-bg-dark p-2 rounded-xl shadow-xl">
+                  <button
+                    onClick={() => handleDelete(profile.id)}
+                    className="px-3 py-1 bg-error-500 rounded-lg text-sm text-white hover:bg-error-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className="px-3 py-1 bg-surface-dark rounded-lg text-sm text-white hover:bg-surface-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(profile.id)}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center
+                    opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-500/50"
+                  title="Delete profile"
+                >
+                  <span className="text-sm">🗑️</span>
+                </button>
+              )}
+            </div>
+          ))}
+
+          {/* New Profile Card */}
+          {isCreating ? (
+            <div className="w-44 glass-card p-4 flex flex-col items-center justify-center gap-3 animate-bounce-in">
+              <input
+                type="text"
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreate()}
+                placeholder="Your name"
+                className="game-input w-full px-3 py-2 text-center text-white"
+                autoFocus
+              />
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={handleCreate}
+                  disabled={!newName.trim()}
+                  className="flex-1 btn-primary py-2 text-sm text-white"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={() => {
+                    setIsCreating(false)
+                    setNewName('')
+                  }}
+                  className="btn-secondary px-3 py-2 text-sm text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsCreating(true)}
+              className="w-44 h-56 rounded-2xl border-4 border-dashed border-white/30
+                flex flex-col items-center justify-center gap-3
+                hover:border-secondary-400 hover:bg-white/5 transition-all duration-300
+                group animate-pulse-glow"
+            >
+              <div className="w-20 h-20 rounded-full border-4 border-dashed border-white/30
+                flex items-center justify-center text-4xl text-white/50
+                group-hover:border-secondary-400 group-hover:text-secondary-400 transition-colors">
+                +
+              </div>
+              <div className="text-white/70 font-semibold group-hover:text-secondary-400 transition-colors">
+                New Pilot
               </div>
             </button>
-            {confirmDelete === profile.id ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleDelete(profile.id)}
-                  className="px-3 py-1 bg-red-600 rounded text-sm hover:bg-red-700"
-                >
-                  Confirm
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="px-3 py-1 bg-gray-600 rounded text-sm hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(profile.id)}
-                className="text-gray-500 hover:text-red-400 transition-colors"
-                title="Delete profile"
-              >
-                🗑️
-              </button>
-            )}
-          </div>
-        ))}
-
-        {isCreating ? (
-          <div className="bg-gray-800 rounded-lg p-4">
-            <input
-              type="text"
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleCreate()}
-              placeholder="Enter your name"
-              className="w-full bg-gray-700 rounded px-4 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-green-500"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleCreate}
-                disabled={!newName.trim()}
-                className="flex-1 bg-green-600 rounded py-2 font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Create Profile
-              </button>
-              <button
-                onClick={() => {
-                  setIsCreating(false)
-                  setNewName('')
-                }}
-                className="px-4 bg-gray-600 rounded py-2 hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setIsCreating(true)}
-            className="w-full bg-gray-800 rounded-lg p-4 text-green-400 hover:bg-gray-700 transition-colors font-semibold"
-          >
-            + New Profile
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
