@@ -29,7 +29,7 @@ interface Props {
 }
 
 export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Props) {
-  const [renderTick, setRenderTick] = useState(0)
+  const [, setRenderTick] = useState(0)
   const [inputValue, setInputValue] = useState('')
 
   const gameStateRef = useRef<GameState>(createInitialGameState())

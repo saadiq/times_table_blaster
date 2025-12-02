@@ -1,4 +1,5 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb'
+import { openDB } from 'idb'
+import type { DBSchema, IDBPDatabase } from 'idb'
 import type { Profile, ProblemStats, SessionResult } from '../types'
 
 interface TimesTableDB extends DBSchema {

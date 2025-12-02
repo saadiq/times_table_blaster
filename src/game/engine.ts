@@ -1,4 +1,4 @@
-import type { GameState, Problem, Missile, Explosion, WrongEffect } from '../types'
+import type { GameState, Problem } from '../types'
 import {
   GAME_WIDTH,
   GAME_HEIGHT,
