@@ -295,10 +295,18 @@
   /* Table selector button */
   .btn-table {
     @apply rounded-xl font-bold transition-all duration-200;
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-size: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .btn-table {
+      width: 64px;
+      height: 64px;
+      font-size: 1.25rem;
+    }
   }
 
   .btn-table-selected {
@@ -434,4 +442,85 @@
   .bg-profile-gradient {
     background: linear-gradient(135deg, #667eea 0%, #f093fb 100%);
   }
+}
+
+/* Mobile-specific styles */
+@layer components {
+  /* Number pad button styling */
+  .pad-button {
+    @apply rounded-xl font-bold transition-all duration-100;
+    background: var(--color-surface-dark);
+    color: white;
+    min-height: 56px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .pad-button:active {
+    @apply scale-95;
+    background: var(--color-surface-medium);
+  }
+
+  .pad-button-clear {
+    background: var(--color-error-600);
+  }
+
+  .pad-button-clear:active {
+    background: var(--color-error-700);
+  }
+
+  .pad-button-fire {
+    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+  }
+
+  .pad-button-fire:active {
+    background: linear-gradient(135deg, #ff5252 0%, #feb139 100%);
+  }
+
+  /* Game container - prevent text selection and zooming */
+  .game-container {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Floating HUD safe area */
+  .floating-hud {
+    padding-top: env(safe-area-inset-top, 8px);
+  }
+
+  /* Number pad safe area */
+  .number-pad {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+}
+
+/* Portrait lock message for mobile landscape */
+@media screen and (max-width: 767px) and (orientation: landscape) {
+  body::before {
+    content: "📱 Please rotate your device to portrait mode";
+    position: fixed;
+    inset: 0;
+    background: var(--color-bg-deep);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-size: 1.25rem;
+    text-align: center;
+    padding: 2rem;
+    color: white;
+    font-family: var(--font-body);
+  }
+}
+
+/* Hide number input spinners on all devices */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
