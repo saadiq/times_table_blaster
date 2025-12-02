@@ -17,6 +17,7 @@ export function ProfilePicker({ onSelectProfile }: Props) {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [newName, setNewName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -25,13 +26,19 @@ export function ProfilePicker({ onSelectProfile }: Props) {
   }, [])
 
   async function loadProfiles() {
-    const loaded = await getAllProfiles()
-    setProfiles(loaded.sort((a, b) => b.createdAt - a.createdAt))
+    try {
+      const loaded = await getAllProfiles()
+      setProfiles(loaded.sort((a, b) => b.createdAt - a.createdAt))
+    } catch (err) {
+      console.error('Failed to load profiles:', err)
+      setError('Could not load pilots. Please refresh the page.')
+    }
   }
 
   async function handleCreate() {
-    if (!newName.trim()) return
+    if (!newName.trim() || isSubmitting) return
     setError(null)
+    setIsSubmitting(true)
     try {
       const profile = await createProfile(newName.trim())
       setNewName('')
@@ -39,14 +46,30 @@ export function ProfilePicker({ onSelectProfile }: Props) {
       onSelectProfile(profile)
     } catch (err) {
       console.error('Failed to create profile:', err)
-      setError('Could not create pilot. Try a different browser or disable private browsing.')
+      if (err instanceof DOMException) {
+        if (err.name === 'QuotaExceededError') {
+          setError('Storage full. Delete some pilots to make room.')
+        } else {
+          setError('Browser storage unavailable. Try disabling private browsing.')
+        }
+      } else {
+        setError('Could not create pilot. Please try again.')
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   async function handleDelete(id: string) {
-    await deleteProfile(id)
-    setConfirmDelete(null)
-    loadProfiles()
+    try {
+      await deleteProfile(id)
+      setConfirmDelete(null)
+      await loadProfiles()
+    } catch (err) {
+      console.error('Failed to delete profile:', err)
+      setError('Could not delete pilot. Please try again.')
+      setConfirmDelete(null)
+    }
   }
 
   return (
@@ -61,6 +84,12 @@ export function ProfilePicker({ onSelectProfile }: Props) {
 
       {/* Profile Cards Grid */}
       <div className="w-full max-w-3xl">
+        {/* Global error message (for load/delete errors) */}
+        {error && !isCreating && (
+          <div className="mb-4 p-3 bg-error-500/20 border border-error-500/50 rounded-xl text-error-400 text-sm text-center">
+            {error}
+          </div>
+        )}
         <div className="flex flex-wrap justify-center gap-6">
           {profiles.map((profile, index) => (
             <div
@@ -144,10 +173,10 @@ export function ProfilePicker({ onSelectProfile }: Props) {
               <div className="flex gap-2 w-full">
                 <button
                   onClick={handleCreate}
-                  disabled={!newName.trim()}
+                  disabled={!newName.trim() || isSubmitting}
                   className="flex-1 btn-primary py-2 text-sm text-white"
                 >
-                  Create
+                  {isSubmitting ? 'Creating...' : 'Create'}
                 </button>
                 <button
                   onClick={() => {
