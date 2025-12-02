@@ -181,18 +181,40 @@ export function fireMissile(
     return false
   }
 
-  // Calculate direction to target
+  // Calculate intercept point (predict where target will be when missile arrives)
+  const fallSpeed = getFallSpeed(state.level)
+  const launchY = GAME_HEIGHT - 30
+
   const dx = target.x - launchX
-  const dy = target.y - (GAME_HEIGHT - 30)
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  const vx = (dx / dist) * MISSILE_SPEED
-  const vy = (dy / dist) * MISSILE_SPEED
-  const rotation = Math.atan2(dy, dx)
+  const dy = target.y - launchY
+
+  // Solve quadratic equation for intercept time
+  // Target moves: (tx, ty + fallSpeed*t)
+  // Missile travels: MISSILE_SPEED * t
+  // Equation: (MISSILE_SPEED² - fallSpeed²)t² - (2*dy*fallSpeed)t - (dx² + dy²) = 0
+  const a = MISSILE_SPEED * MISSILE_SPEED - fallSpeed * fallSpeed
+  const b = -2 * dy * fallSpeed
+  const c = -(dx * dx + dy * dy)
+
+  const discriminant = b * b - 4 * a * c
+  const t = (-b + Math.sqrt(discriminant)) / (2 * a)
+
+  // Calculate intercept position
+  const interceptX = target.x
+  const interceptY = target.y + fallSpeed * t
+
+  // Calculate direction to intercept point
+  const interceptDx = interceptX - launchX
+  const interceptDy = interceptY - launchY
+  const dist = Math.sqrt(interceptDx * interceptDx + interceptDy * interceptDy)
+  const vx = (interceptDx / dist) * MISSILE_SPEED
+  const vy = (interceptDy / dist) * MISSILE_SPEED
+  const rotation = Math.atan2(interceptDy, interceptDx)
 
   state.missiles.push({
     id: crypto.randomUUID(),
     x: launchX,
-    y: GAME_HEIGHT - 30,
+    y: launchY,
     vx,
     vy,
     targetAnswer: answer,
