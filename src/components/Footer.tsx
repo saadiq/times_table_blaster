@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="fixed bottom-0 left-0 right-0 pb-4 px-4 text-center text-sm text-white/60">
+    <footer className="pb-4 px-4 text-center text-sm text-white/60 md:fixed md:bottom-0 md:left-0 md:right-0">
       <div className="flex items-center justify-center gap-4">
         <a
           href="https://github.com/saadiq/times_table_blaster"
