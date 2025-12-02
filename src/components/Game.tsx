@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import type { Profile, GameState, ProblemStats } from '../types'
 import { GameCanvas } from './GameCanvas'
+import type { GameCanvasHandle } from './GameCanvas'
 import { GameHUD } from './GameHUD'
 import {
   createInitialGameState,
@@ -39,6 +40,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
   const gameLoopRef = useRef<number | null>(null)
   const spawnIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hudUpdateRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const canvasRef = useRef<GameCanvasHandle>(null)
 
   // Load stats on mount
   useEffect(() => {
@@ -90,48 +92,8 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     }, interval)
   }, [spawnProblem])
 
-  // Game loop
-  useEffect(() => {
-    // Start spawning
-    spawnProblem()
-    scheduleSpawn()
-
-    // Game loop
-    function loop() {
-      const state = gameStateRef.current
-      updateGameState(state)
-
-      // Check for newly missed problems
-      for (const [key, result] of state.problemResults) {
-        if (result.incorrect > 0) {
-          missedThisSessionRef.current.add(key)
-        }
-      }
-
-      // Check game over
-      if (state.status === 'ended') {
-        handleGameEnd()
-        return
-      }
-
-      gameLoopRef.current = requestAnimationFrame(loop)
-    }
-
-    gameLoopRef.current = requestAnimationFrame(loop)
-
-    // HUD update (10fps)
-    hudUpdateRef.current = setInterval(() => {
-      setRenderTick(t => t + 1)
-    }, 100)
-
-    return () => {
-      if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current)
-      if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
-      if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
-    }
-  }, [spawnProblem, scheduleSpawn])
-
-  async function handleGameEnd() {
+  // Handle game end
+  const handleGameEnd = useCallback(async () => {
     if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
     if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
 
@@ -184,7 +146,51 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
       troubleSpots,
       isNewHighScore
     })
-  }
+  }, [profile, onGameOver])
+
+  // Game loop
+  useEffect(() => {
+    // Start spawning
+    spawnProblem()
+    scheduleSpawn()
+
+    // Game loop
+    function loop() {
+      const state = gameStateRef.current
+      updateGameState(state)
+
+      // Render to canvas
+      canvasRef.current?.render(state)
+
+      // Check for newly missed problems
+      for (const [key, result] of state.problemResults) {
+        if (result.incorrect > 0) {
+          missedThisSessionRef.current.add(key)
+        }
+      }
+
+      // Check game over
+      if (state.status === 'ended') {
+        handleGameEnd()
+        return
+      }
+
+      gameLoopRef.current = requestAnimationFrame(loop)
+    }
+
+    gameLoopRef.current = requestAnimationFrame(loop)
+
+    // HUD update (10fps)
+    hudUpdateRef.current = setInterval(() => {
+      setRenderTick(t => t + 1)
+    }, 100)
+
+    return () => {
+      if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current)
+      if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
+      if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
+    }
+  }, [spawnProblem, scheduleSpawn, handleGameEnd])
 
   function handleFire() {
     const answer = parseInt(inputValue, 10)
@@ -207,7 +213,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
       <div className="bg-gray-800 rounded-lg overflow-hidden shadow-2xl">
         <GameHUD lives={state.lives} level={state.level} score={state.score} />
-        <GameCanvas gameState={state} />
+        <GameCanvas ref={canvasRef} />
         <div className="p-4 bg-gray-800">
           <div className="flex gap-2">
             <input

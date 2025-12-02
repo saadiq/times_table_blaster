@@ -1,24 +1,29 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import type { GameState } from '../types'
 import { render } from '../game/renderer'
 import { GAME_WIDTH, GAME_HEIGHT } from '../game/constants'
 
-interface Props {
-  gameState: GameState
+export interface GameCanvasHandle {
+  render: (state: GameState) => void
 }
 
-export function GameCanvas({ gameState }: Props) {
+export const GameCanvas = forwardRef<GameCanvasHandle>(function GameCanvas(_, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+    ctxRef.current = canvas.getContext('2d')
+  }, [])
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    render(ctx, gameState)
-  }, [gameState])
+  useImperativeHandle(ref, () => ({
+    render: (state: GameState) => {
+      if (ctxRef.current) {
+        render(ctxRef.current, state)
+      }
+    }
+  }))
 
   return (
     <canvas
@@ -28,4 +33,4 @@ export function GameCanvas({ gameState }: Props) {
       className="block"
     />
   )
-}
+})
