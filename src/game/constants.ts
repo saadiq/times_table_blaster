@@ -1,6 +1,6 @@
 // Game dimensions
-export const GAME_WIDTH = 600
-export const GAME_HEIGHT = 500
+export const GAME_WIDTH = 900
+export const GAME_HEIGHT = 700
 
 // Gameplay
 export const INITIAL_LIVES = 3
