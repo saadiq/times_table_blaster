@@ -18,7 +18,7 @@ import { getProblemStats, saveProblemStatsBatch } from '../storage/stats'
 import { updateProfile } from '../storage/profiles'
 import { updateStats, calculateQuality, createInitialStats } from '../learning/sm2'
 import { getPhaseBasedSpeed, updateSpeedMultiplier, addPerformanceResult } from '../game/performance'
-import { recordCorrectAnswer } from '../game/phases'
+import { recordCorrectAnswer, getPhaseDescription } from '../game/phases'
 
 interface Props {
   profile: Profile
@@ -167,8 +167,10 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
 
   // Game loop
   useEffect(() => {
-    // Start spawning
+    // Spawn initial problems immediately so screen isn't empty
     spawnProblem()
+    // Add a second problem after a short delay for variety
+    setTimeout(() => spawnProblem(), 300)
     scheduleSpawn()
 
     // Game loop
@@ -254,9 +256,58 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
 
   return (
     <div className="game-container fixed inset-0 flex flex-col bg-bg-deep overflow-hidden">
-      {/* Canvas Container with Floating HUD */}
+      {/* Mobile HUD - separate row above canvas */}
+      {isMobile && (
+        <div className="flex-shrink-0 px-2 py-2 flex items-center justify-between gap-2" style={{ paddingTop: 'env(safe-area-inset-top, 8px)' }}>
+          {/* Lives */}
+          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5">
+            <div className="flex gap-0.5">
+              {Array.from({ length: 3 }, (_, i) => (
+                <svg
+                  key={i}
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill={i < state.lives ? '#f56565' : 'transparent'}
+                  stroke={i < state.lives ? '#f56565' : '#5c5690'}
+                  strokeWidth="2"
+                  className={i < state.lives ? 'drop-shadow-[0_0_6px_rgba(245,101,101,0.6)]' : 'opacity-40'}
+                >
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              ))}
+            </div>
+          </div>
+
+          {/* Level & Phase */}
+          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1 text-center flex-1 max-w-[160px]">
+            <div className="text-xs font-bold text-secondary-400">Level {state.level}</div>
+            <div className="text-[10px] text-gray-400 truncate">
+              {getPhaseDescription(state.phaseProgress.currentPhase)}
+            </div>
+          </div>
+
+          {/* Score */}
+          <div className="bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1.5">
+            <div className="text-base font-mono font-bold text-white">
+              {state.score.toLocaleString()}
+            </div>
+          </div>
+
+          {/* Exit button */}
+          <button
+            onClick={onBackToMenu}
+            className="bg-black/50 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center text-surface-light active:bg-black/70"
+            aria-label="Exit game"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Canvas Container */}
       <div
-        className="relative flex-1 flex items-center justify-center min-h-0"
+        className="relative flex-1 flex items-center justify-center min-h-0 overflow-hidden"
         style={!isMobile ? { maxWidth: `${width}px`, margin: '0 auto' } : undefined}
       >
         <div className="relative">
@@ -267,12 +318,15 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
             scaleX={scaleX}
             scaleY={scaleY}
           />
-          <FloatingHUD
-            lives={state.lives}
-            level={state.level}
-            score={state.score}
-            phaseProgress={state.phaseProgress}
-          />
+          {/* Desktop HUD - overlaid on canvas */}
+          {!isMobile && (
+            <FloatingHUD
+              lives={state.lives}
+              level={state.level}
+              score={state.score}
+              phaseProgress={state.phaseProgress}
+            />
+          )}
         </div>
       </div>
 
@@ -294,16 +348,8 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
         </div>
       )}
 
-      {/* Back/Pause button */}
-      {isMobile ? (
-        <button
-          onClick={onBackToMenu}
-          className="absolute bottom-[220px] right-3 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2 text-surface-light active:bg-black/70 z-20"
-          aria-label="Exit game"
-        >
-          ✕
-        </button>
-      ) : (
+      {/* Back/Pause button - positioned relative to canvas on mobile */}
+      {!isMobile && (
         <button
           onClick={onBackToMenu}
           className="absolute top-4 left-4 text-surface-light hover:text-white text-sm transition-colors z-20"
