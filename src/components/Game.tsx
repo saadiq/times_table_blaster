@@ -210,36 +210,39 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
   const state = gameStateRef.current
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-lg overflow-hidden shadow-2xl">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="arcade-frame overflow-hidden">
         <GameHUD lives={state.lives} level={state.level} score={state.score} />
         <GameCanvas ref={canvasRef} />
-        <div className="p-4 bg-gray-800">
-          <div className="flex gap-2">
+
+        {/* Control Panel */}
+        <div className="p-5 bg-bg-deep border-t-2 border-primary-500/30">
+          <div className="flex gap-3">
             <input
               type="number"
               value={inputValue}
               onChange={e => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type answer..."
-              className="flex-1 bg-gray-700 rounded px-4 py-3 text-white text-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="game-input flex-1 px-5 py-4 text-white text-2xl"
               autoFocus
             />
             <button
               onClick={handleFire}
-              className="bg-green-600 hover:bg-green-700 rounded px-6 py-3 font-bold text-lg transition-colors"
+              className="btn-fire px-8 py-4 text-lg text-white"
             >
-              Fire! 🚀
+              FIRE! 🚀
             </button>
           </div>
-          <p className="text-gray-400 text-sm mt-2 text-center">
-            Type the answer and press Enter to fire!
+          <p className="text-surface-light text-sm mt-3 text-center">
+            Type the answer and press <span className="text-secondary-400 font-semibold">Enter</span> to fire!
           </p>
         </div>
       </div>
+
       <button
         onClick={onBackToMenu}
-        className="mt-4 text-gray-500 hover:text-gray-300 text-sm"
+        className="mt-6 text-surface-light hover:text-white text-sm transition-colors"
       >
         ← Back to Menu
       </button>
