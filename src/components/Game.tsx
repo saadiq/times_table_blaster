@@ -57,12 +57,17 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
   // Load stats on mount
   useEffect(() => {
     async function loadStats() {
-      const stats = await getProblemStats(profile.id)
-      const map = new Map<string, ProblemStats>()
-      for (const s of stats) {
-        map.set(s.problemKey, s)
+      try {
+        const stats = await getProblemStats(profile.id)
+        const map = new Map<string, ProblemStats>()
+        for (const s of stats) {
+          map.set(s.problemKey, s)
+        }
+        statsMapRef.current = map
+      } catch (error) {
+        console.error('Failed to load stats:', error)
+        // Continue with empty stats - game still playable
       }
-      statsMapRef.current = map
       setStatsLoaded(true)
     }
     loadStats()
