@@ -15,6 +15,11 @@ interface RenderContext {
 // Star positions stored in base coordinates (0-1 normalized)
 const stars: { x: number; y: number; size: number; twinkleOffset: number }[] = []
 
+// Cached gradients - recreated only when dimensions change
+let cachedBgGradient: CanvasGradient | null = null
+let cachedBgHeight = 0
+let cachedBgCtx: CanvasRenderingContext2D | null = null
+
 function initStars(): void {
   if (stars.length > 0) return
   for (let i = 0; i < STAR_COUNT; i++) {
@@ -27,6 +32,22 @@ function initStars(): void {
   }
 }
 
+function getBackgroundGradient(ctx: CanvasRenderingContext2D, height: number): CanvasGradient {
+  // Only recreate gradient if height changed or context changed
+  if (cachedBgGradient && cachedBgHeight === height && cachedBgCtx === ctx) {
+    return cachedBgGradient
+  }
+
+  cachedBgGradient = ctx.createLinearGradient(0, 0, 0, height)
+  cachedBgGradient.addColorStop(0, '#0f0c29')
+  cachedBgGradient.addColorStop(0.5, '#302b63')
+  cachedBgGradient.addColorStop(1, '#24243e')
+  cachedBgHeight = height
+  cachedBgCtx = ctx
+
+  return cachedBgGradient
+}
+
 export function render(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -36,12 +57,8 @@ export function render(
 
   const { width, height, scaleX, scaleY } = dimensions
 
-  // Clear and draw background
-  const gradient = ctx.createLinearGradient(0, 0, 0, height)
-  gradient.addColorStop(0, '#0f0c29')
-  gradient.addColorStop(0.5, '#302b63')
-  gradient.addColorStop(1, '#24243e')
-  ctx.fillStyle = gradient
+  // Clear and draw background (using cached gradient)
+  ctx.fillStyle = getBackgroundGradient(ctx, height)
   ctx.fillRect(0, 0, width, height)
 
   // Draw stars (scaled from normalized coordinates)
@@ -60,6 +77,11 @@ export function render(
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
 
+  // Set shadow once for all problems (avoid setting per-problem)
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
+  ctx.shadowBlur = 8
+  ctx.shadowOffsetY = 2
+
   for (const problem of state.problems) {
     // Scale coordinates from base to actual canvas
     const px = problem.x * scaleX
@@ -71,35 +93,21 @@ export function render(
     const boxWidth = metrics.width + padding * 2
     const boxHeight = 36 * Math.min(scaleX, scaleY)
 
-    // Gradient background for problems
-    const problemGradient = ctx.createLinearGradient(
-      px - boxWidth / 2,
-      py - boxHeight / 2,
-      px + boxWidth / 2,
-      py + boxHeight / 2
-    )
-    problemGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)')
-    problemGradient.addColorStop(1, 'rgba(230, 230, 255, 0.95)')
-
-    // Shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)'
-    ctx.shadowBlur = 8
-    ctx.shadowOffsetY = 2
-
-    ctx.fillStyle = problemGradient
+    // Solid background instead of per-problem gradient (much faster on mobile)
+    ctx.fillStyle = 'rgba(245, 245, 255, 0.95)'
     ctx.beginPath()
     ctx.roundRect(px - boxWidth / 2, py - boxHeight / 2, boxWidth, boxHeight, 10)
     ctx.fill()
-
-    // Reset shadow
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetY = 0
 
     // Text
     ctx.fillStyle = '#1a1a2e'
     ctx.fillText(text, px, py)
   }
+
+  // Reset shadow after all problems
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetY = 0
 
   // Draw missiles with trail effect (scaled)
   const missileScale = Math.min(scaleX, scaleY)
@@ -107,27 +115,18 @@ export function render(
     const mx = missile.x * scaleX
     const my = missile.y * scaleY
 
-    // Draw trail particles
-    ctx.save()
+    // Draw trail particles with simple circles (faster than gradients on mobile)
     for (let i = 0; i < 5; i++) {
       const trailY = my + i * 8 * scaleY
-      const size = (6 - i * 1) * missileScale
+      const size = (6 - i) * missileScale
       const alpha = 0.6 - i * 0.1
 
-      // Orange-yellow gradient trail
-      const trailGradient = ctx.createRadialGradient(
-        mx, trailY, 0,
-        mx, trailY, size
-      )
-      trailGradient.addColorStop(0, `rgba(255, 200, 50, ${alpha})`)
-      trailGradient.addColorStop(1, `rgba(255, 100, 50, 0)`)
-
-      ctx.fillStyle = trailGradient
+      // Simple solid circles instead of radial gradients
+      ctx.fillStyle = `rgba(255, 180, 50, ${alpha})`
       ctx.beginPath()
       ctx.arc(mx, trailY, size, 0, Math.PI * 2)
       ctx.fill()
     }
-    ctx.restore()
 
     // Draw rocket
     ctx.save()
