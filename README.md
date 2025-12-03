@@ -2,6 +2,14 @@
 
 An arcade-style typing shooter game for learning multiplication tables. Type the correct answer to fire missiles at falling math problems before they reach the bottom!
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/menu.png" alt="Main Menu" width="250" />
+  <img src="screenshots/gameplay.png" alt="Gameplay" width="250" />
+  <img src="screenshots/stats.png" alt="Progress Stats" width="250" />
+</p>
+
 ## Features
 
 - **Spaced Repetition Learning** - Uses SM-2 algorithm to prioritize problems you struggle with
