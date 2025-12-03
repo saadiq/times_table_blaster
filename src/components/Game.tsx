@@ -38,6 +38,7 @@ interface Props {
 export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Props) {
   const [, setRenderTick] = useState(0)
   const [inputValue, setInputValue] = useState('')
+  const [statsLoaded, setStatsLoaded] = useState(false)
 
   // Get responsive canvas dimensions
   const { width, height, scaleX, scaleY, isMobile } = useResponsiveCanvas()
@@ -62,6 +63,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
         map.set(s.problemKey, s)
       }
       statsMapRef.current = map
+      setStatsLoaded(true)
     }
     loadStats()
   }, [profile.id])
@@ -179,8 +181,10 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
     })
   }, [profile, onGameOver])
 
-  // Game loop
+  // Game loop - only starts after stats are loaded
   useEffect(() => {
+    if (!statsLoaded) return
+
     // Track game start
     gameStartTimeRef.current = Date.now()
     trackGameStart(selectedTables, profile.name)
@@ -238,7 +242,7 @@ export function Game({ profile, selectedTables, onGameOver, onBackToMenu }: Prop
       if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current)
       if (hudUpdateRef.current) clearInterval(hudUpdateRef.current)
     }
-  }, [spawnProblem, scheduleSpawn, handleGameEnd, scaleY])
+  }, [statsLoaded, spawnProblem, scheduleSpawn, handleGameEnd, scaleY, selectedTables, profile.name])
 
   // Fire missile at center of canvas (in base coordinates)
   function handleFire() {
