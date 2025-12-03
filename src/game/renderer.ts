@@ -71,8 +71,9 @@ export function render(
     ctx.fill()
   }
 
-  // Draw problems with Fredoka font (scaled)
-  const fontSize = Math.round(22 * Math.min(scaleX, scaleY))
+  // Draw problems with Fredoka font (scaled with minimum for mobile readability)
+  const scale = Math.min(scaleX, scaleY)
+  const fontSize = Math.max(18, Math.round(28 * scale))
   ctx.font = `bold ${fontSize}px Fredoka, ui-rounded, sans-serif`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
@@ -82,6 +83,10 @@ export function render(
   ctx.shadowBlur = 8
   ctx.shadowOffsetY = 2
 
+  // Padding and box height scale with font, with minimums for mobile
+  const padding = Math.max(10, Math.round(18 * scale))
+  const boxHeight = Math.max(28, Math.round(44 * scale))
+
   for (const problem of state.problems) {
     // Scale coordinates from base to actual canvas
     const px = problem.x * scaleX
@@ -89,9 +94,7 @@ export function render(
 
     const text = `${problem.a} × ${problem.b}`
     const metrics = ctx.measureText(text)
-    const padding = 16 * Math.min(scaleX, scaleY)
     const boxWidth = metrics.width + padding * 2
-    const boxHeight = 36 * Math.min(scaleX, scaleY)
 
     // Solid background instead of per-problem gradient (much faster on mobile)
     ctx.fillStyle = 'rgba(245, 245, 255, 0.95)'
